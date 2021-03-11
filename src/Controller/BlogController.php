@@ -3,10 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\Article;
+use App\Form\ArticleFormType;
 use App\Repository\ArticleRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BlogController extends AbstractController
@@ -50,13 +53,74 @@ class BlogController extends AbstractController
     /**
      * detaild'un article
      * @Route("/blog/new", name="blog_create")
+     * @Route("/blog/{id}/edit", name="blog_edit")
      */
-    public function create(Request $request): Response
+    public function create(Article $articleCreate = null, Request $request, EntityManagerInterface $manager): Response
     {
+        if(!$articleCreate)
+        {
+            $articleCreate = new Article;
+        }
         // la classe Request de Symfony permet de véhiculer les données des superglobales PHP ($_POST, $_FILES, $_COOKIE, $_SESSION)
         // $request est un objet issu de la classe Request injecté en dependance de la méthode create()
+        // $request permet de stocker les données des superglobales, la propriété $request->request permet de stocker les données véhiculées par un formulaire ($_POST), ici on compte si il y a données qui ont été saisie dans la formulaire
 
-        return $this->render('blog/create.html.twig');
+        /*if($request->request->count()>0)
+        {
+            // Pour insérer dans la table Article, nous devons instancier un objet issu de la classe entité Article, qui est lié à la table SQL Article
+
+            $articleCreate = new Article;
+            // On rensigne tout les setteurs de l'objet avec en arguments les données du formulaire ($_POST)
+
+            $articleCreate->setTitle($request->request->get('title'))
+                          ->setContent($request->request->get('content'))
+                          ->setImage($request->request->get('image'))
+                          ->setCreateAt(new \DateTime);
+            // On fait appel au manager afin de pouvoir executer une insertion en BDD
+
+            $manager->persist($articleCreate);// on prépare et garde en mémoire l'insertion
+
+            $manager->flush();// on execute l'insertion
+
+            // Après l'insertion, on redirige l'internaute vers le détail de l'article qui vient d'être inséré en BDD
+            // Cela correspond à la route 'blog_show', mais c'est une route paramétrée qui attend un ID dans l'URL
+            // En 2ème argument de redirectToRoute, nous transmettons l'ID de l'article qui vient d'être inséré en BDD
+
+            return $this->redirectToRoute('blog_show', [
+                'id'=>$articleCreate->getId()
+            ]);
+        }*/
+        //
+        //$articleCreate->setTitle("Titer")
+        //            ->setContent("Contenu");
+        /*$form=$this->createFormBuilder($articleCreate)
+                   ->add('title')
+                   ->add('content')
+                   ->add('image')
+                   ->getForm();*/
+        $form=$this->createForm(ArticleFormType::class, $articleCreate);
+        $form->handleRequest($request);
+        if($form->isSubmitted() && $form->isValid())
+        {
+            if(!$articleCreate->getId())
+            {
+                $articleCreate->setCreatedAt(new \DateTime);
+            }
+
+            
+
+            $manager->persist($articleCreate);
+            
+            $manager->flush();
+            return $this->redirectToRoute('blog_show',[
+                'id'=>$articleCreate->getId()
+            ]);
+
+        }
+        return $this->render('blog/create.html.twig', [
+            'formArticle'=>$form->createView(),
+            'editMode'=>$articleCreate->getId()
+        ]);
     }
     /**
      * detaild'un article
