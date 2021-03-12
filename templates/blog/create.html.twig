@@ -39,7 +39,8 @@
       })
     }}
     
-    ) 
+    {{ form_row(formArticle.category, {'label': "Choisir une categorie"})}}
+    
     {{ form_row(formArticle.content,{
       'attr':{'placeholder': "Saisir le titre de l'article",
       'row': 15
